@@ -39,7 +39,7 @@ sub main {
 	clog("INFO", "Getting email notes");
 	my $search = $imap->search({
 		FROM => "eeepc904\@gmail.com"
-	}, [ "DATE" ]);
+	}, [ "^DATE" ]);
 
 	print Dumper($search);
 }
