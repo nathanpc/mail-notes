@@ -18,8 +18,28 @@ sub clog {
 	print "[$cat] $msg\n";
 }
 
+sub get_old_ids {
+	my $yaml = YAML::Tiny->read("downloaded.yml");
+	my @old_ids;
+
+	if (defined $yaml) {
+		@old_ids = @{ $yaml->[0] };
+	}
+
+	return @old_ids;
+}
+
+sub cache {
+	my ($ids) = @_;
+
+	my $yaml = YAML::Tiny->new();
+	$yaml->[0] = $ids;
+	$yaml->write("downloaded.yml");
+}
+
 # The main thing.
 sub main {
+	# Load the config file.
 	my $config = YAML::Tiny->read("config.yml")->[0];
 
 	# Connect.
@@ -36,12 +56,18 @@ sub main {
 	clog("INFO", "Logging in as " . $config->{"username"});
 	$imap->login() or die "Failed to login";
 
+	# Get the IDs.
 	clog("INFO", "Getting email notes");
-	my $search = $imap->search({
-		FROM => "eeepc904\@gmail.com"
-	}, [ "^DATE" ]);
+	$imap->select("Reminders");
+	my @ids = @{ $imap->search("ALL") };
 
-	print Dumper($search);
+	# Get old IDs and remove them from the new ones.
+	my @old_ids = get_old_ids();
+	my @new_ids = splice(@ids, $#old_ids + 1);
+	print Dumper(\@new_ids);
+
+	# Cache
+	cache(\@ids);
 }
 
 main();
