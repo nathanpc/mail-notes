@@ -9,7 +9,7 @@ use warnings;
 use Data::Dumper;
 
 use YAML::Tiny;
-use Net::IMAP::Simple;
+use Net::IMAP::Client;
 
 sub clog {
 	my ($cat, $msg) = @_;
@@ -22,20 +22,24 @@ sub main {
 
 	# Connect.
 	clog("INFO", "Connecting to " . $config->{"host"} . ":" . $config->{"port"} . "...");
-	my $imap = Net::IMAP::Simple->new($config->{"host"},
-									  port => $config->{"port"},
-									  use_ssl => 1) ||
-										  die "Unable to connect: $Net::IMAP::Simple::errstr\n";
+	my $imap = Net::IMAP::Client->new(
+		server => $config->{"host"},
+		port   => $config->{"port"},
+		user   => $config->{"username"},
+		pass   => $config->{"password"},
+		ssl    => 1
+	) or die "Unable to connect to IMAP server";
 
 	# Log in.
 	clog("INFO", "Logging in as " . $config->{"username"});
-	if (!$imap->login($config->{"username"}, $config->{"password"})) {
-		die "Login failed: $imap->errstr\n";
-	}
+	$imap->login() or die "Failed to login";
 
 	clog("INFO", "Getting email notes");
-	my @ids = $imap->search("FROM \"eeepc904\@gmail.com\"");
-	print Dumper(\@ids);
+	my $search = $imap->search({
+		FROM => "eeepc904\@gmail.com"
+	}, [ "DATE" ]);
+
+	print Dumper($search);
 }
 
 main();
